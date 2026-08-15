@@ -1,0 +1,12 @@
+# Colcon / ROS2 构建产物
+build/
+install/
+log/
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
