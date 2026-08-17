@@ -14,11 +14,11 @@ def generate_launch_description():
         nav2_bringup_dir, 'rviz', 'nav2_default_view.rviz')
 
     # 全局地图路径，方便更换地图进行测试
-    nav2_global_map = "/home/robomaster/project/sentry_ws/maps/suqian/pgm/map.yaml"
+    nav2_global_map = "/home/robomaster/project/sentry_ws/maps/floor/pgm/map.yaml"
 
-    # 创建 Launch 配置
+    # 实车使用系统时钟; 定位由 fastlio2 + localizer 提供 (map->odom->base_link), AMCL 已禁用
     use_sim_time = launch.substitutions.LaunchConfiguration(
-        'use_sim_time', default='true')
+        'use_sim_time', default='false')
     map_yaml_path = launch.substitutions.LaunchConfiguration(
         'map', default=nav2_global_map)
     nav2_param_path = launch.substitutions.LaunchConfiguration(
@@ -33,12 +33,28 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument('params_file', default_value=nav2_param_path,
                                              description='Full path to param file to load'),
 
+        # 地图服务器 + 生命周期管理 (不使用 bringup_launch.py, 它会无条件启动 AMCL)
+        launch_ros.actions.Node(
+            package='nav2_map_server',
+            executable='map_server',
+            name='map_server',
+            output='screen',
+            parameters=[nav2_param_path,
+                        {'yaml_filename': map_yaml_path, 'use_sim_time': use_sim_time}]),
+        launch_ros.actions.Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_map',
+            output='screen',
+            parameters=[{'use_sim_time': use_sim_time},
+                        {'autostart': True},
+                        {'node_names': ['map_server']}]),
+
+        # 导航栈 (planner/controller/behavior 等, 不含定位)
         launch.actions.IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                [nav2_bringup_dir, '/launch', '/bringup_launch.py']),
-            # 使用 Launch 参数替换原有参数
+                [nav2_bringup_dir, '/launch', '/navigation_launch.py']),
             launch_arguments={
-                'map': map_yaml_path,
                 'use_sim_time': use_sim_time,
                 'params_file': nav2_param_path}.items(),
         ),

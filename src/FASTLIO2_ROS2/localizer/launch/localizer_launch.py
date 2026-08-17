@@ -1,6 +1,7 @@
 import launch
 import launch_ros.actions
-from launch.substitutions import PathJoinSubstitution
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -17,6 +18,10 @@ def generate_launch_description():
     )
     return launch.LaunchDescription(
         [
+            # 定位 RViz 默认启动; 不需要时 rviz:=false
+            launch.actions.DeclareLaunchArgument(
+                "rviz", default_value="true",
+                description="Whether to start RViz2"),
             launch_ros.actions.Node(
                 package="fastlio2",
                 namespace="fastlio2",
@@ -47,7 +52,8 @@ def generate_launch_description():
                 executable="rviz2",
                 name="rviz2",
                 output="screen",
+                condition=IfCondition(LaunchConfiguration("rviz")),
                 arguments=["-d", rviz_cfg.perform(launch.LaunchContext())],
-            )
+            ),
         ]
     )
