@@ -1,6 +1,6 @@
 // sentry_control 节点
 // 功能: 订阅 Nav2 输出的 cmd_vel (geometry_msgs/Twist), 提取 linear.x 与 angular.z,
-//       将角速度除以缩放系数(默认 1.42)后, 按串口协议 (Header+Type+Len+Data+CRC8)
+//       将角速度取反后除以缩放系数(默认 1.42), 按串口协议 (Header+Type+Len+Data+CRC8)
 //       以固定频率持续发送差速指令至 MCU。
 //
 // 串口协议与 /home/robomaster/project/test 目录下已验证脚本一致:
@@ -112,7 +112,9 @@ private:
     }
     // 超时/未收到指令时保持零速 (安全保护)
 
-    // 角速度除以缩放系数 (默认 1.42) 后发送
+    // 角速度先取反 (实车转向与 ROS 约定相反: ROS 逆时针为正, MCU 顺时针为正),
+    // 再除以缩放系数 (默认 1.42) 后发送
+    angular = -angular;
     angular /= angular_divisor_;
 
     // 过滤极小值, 避免浮点噪声造成底盘微动

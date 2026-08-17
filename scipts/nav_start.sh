@@ -8,6 +8,7 @@
 #   4. localizer_launch           fastlio2 (odom->base_link) + localizer (map->odom)
 #   5. relocalize 服务            加载 PCD 地图并完成初始定位
 #   6. navigation2.launch         Nav2 (map_server + 规划/控制, 全局代价地图输入 pgm 地图)
+#   7. control_launch             底盘执行节点 (订阅 /cmd_vel_smoothed, 串口下发差速指令至 MCU)
 #
 # 用法:
 #   ./nav_start.sh                      # 默认初始位姿 (0, 0, 0, yaw=0)
@@ -30,7 +31,7 @@ fi
 source "$WS_DIR/install/setup.bash"
 
 # ---------- 0. 清理残留进程 (避免重复启动导致节点成对/话题冲突) ----------
-if pgrep -f 'lio_node|localizer_node|controller_server|map_server|rviz2' >/dev/null 2>&1; then
+if pgrep -f 'lio_node|localizer_node|controller_server|map_server|rviz2|control_node' >/dev/null 2>&1; then
     echo "[nav_start] 检测到残留导航进程, 自动清理..."
     bash "$SCRIPT_DIR/stop_all.sh"
     sleep 1
@@ -53,7 +54,7 @@ cleanup() {
     wait 2>/dev/null
     # 清理各 launch 拉起的子进程
     pkill -f 'ros2 launch' 2>/dev/null
-    pkill -f 'lio_node|localizer_node|map_server|controller_server|planner_server|rviz2' 2>/dev/null
+    pkill -f 'lio_node|localizer_node|map_server|controller_server|planner_server|rviz2|control_node' 2>/dev/null
     echo "[nav_start] 已退出"
     exit 0
 }
@@ -98,6 +99,9 @@ fi
 
 # ---------- 6. Nav2 导航栈 ----------
 start ros2 launch sentry_nav2_bringup navigation2.launch.py
+
+# ---------- 7. 底盘执行节点 (订阅 /cmd_vel_smoothed -> 串口下发 MCU) ----------
+start ros2 launch sentry_control control_launch.py
 
 echo ""
 echo "[nav_start] 全部启动完成, Ctrl+C 一键停止"

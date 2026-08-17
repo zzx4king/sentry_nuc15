@@ -53,7 +53,7 @@ sentry_ws/
 │   ├── floor/                    # 楼层建图
 │   └── test/                     # 测试地图
 └── doc/
-    ├── fastlio2_fit_jazzy.md     # FASTLIO2_ROS2 适配 ROS 2 Jazzy 的完整记录
+    ├── fit.md                    # FASTLIO2_ROS2 适配 ROS 2 Jazzy 的完整记录
     └── nav2_jazzy_config_fix.md  # Nav2 Jazzy 兼容性修复记录（2026-08-17）
 ```
 
@@ -131,7 +131,7 @@ cmake -DBUILD_SOPHUS_TESTS=OFF ..
 make -j && sudo make install
 ```
 
-> 详细踩坑记录见 [doc/fastlio2_fit_jazzy.md](doc/fastlio2_fit_jazzy.md)。
+> 详细踩坑记录见 [doc/fit.md](doc/fit.md)。
 
 ### 6.5 构建工作空间
 

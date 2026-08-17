@@ -1,5 +1,5 @@
 // 键盘发布 cmd_vel 测试节点 (teleop_test_node)
-// 用途: 手动模拟 Nav2 的 cmd_vel 输出, 配合 control_node 测试 串口->MCU 链路
+// 用途: 手动模拟 Nav2 的 /cmd_vel_smoothed 输出, 配合 control_node 测试 串口->MCU 链路
 //
 // 键位 (设定目标速度, 节点以 50Hz 持续发布):
 //   w : 前进 (linear=+步长)     s : 后退 (linear=-步长)
@@ -10,7 +10,7 @@
 //   h : 打印帮助
 //
 // 用法: ros2 run sentry_control teleoptest_node
-// 注意: 测试时勿同时运行 Nav2, 避免双方争抢 cmd_vel
+// 注意: 测试时勿同时运行 Nav2, 避免双方争抢 /cmd_vel_smoothed
 
 #define _DEFAULT_SOURCE 1
 
@@ -37,7 +37,7 @@ public:
   {
     // ---------------- 参数 ----------------
     const std::string topic =
-      declare_parameter<std::string>("cmd_vel_topic", "cmd_vel");
+      declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel_smoothed");
     linear_step_ = declare_parameter<double>("linear_step", 0.2);
     angular_step_ = declare_parameter<double>("angular_step", 0.3);
     max_linear_ = declare_parameter<double>("max_linear", 1.0);
