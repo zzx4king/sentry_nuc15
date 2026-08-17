@@ -16,6 +16,11 @@ pkill -9 -f 'ros2 run' 2>/dev/null
 pkill -9 -f 'lio_node' 2>/dev/null
 pkill -9 -f 'localizer_node' 2>/dev/null
 
+# 底盘执行 (先 SIGTERM 让 control_node 析构时发送 stop 帧安全停车, 再强杀兜底)
+pkill -f 'control_node' 2>/dev/null
+sleep 1
+pkill -9 -f 'control_node' 2>/dev/null
+
 # nav2 全套
 pkill -9 -f 'controller_server' 2>/dev/null
 pkill -9 -f 'planner_server' 2>/dev/null
@@ -44,10 +49,10 @@ pkill -9 -f 'rviz2' 2>/dev/null
 sleep 2
 
 # 检查残留
-REMAIN=$(pgrep -f 'lio_node|localizer_node|controller_server|planner_server|bt_navigator|map_server|rviz2|component_container|livox' 2>/dev/null | wc -l)
+REMAIN=$(pgrep -f 'lio_node|localizer_node|controller_server|planner_server|bt_navigator|map_server|rviz2|component_container|livox|control_node' 2>/dev/null | wc -l)
 if [ "$REMAIN" -gt 0 ]; then
     echo "[stop_all] 仍有 $REMAIN 个进程残留:"
-    pgrep -af 'lio_node|localizer_node|controller_server|planner_server|bt_navigator|map_server|rviz2|component_container|livox' 2>/dev/null
+    pgrep -af 'lio_node|localizer_node|controller_server|planner_server|bt_navigator|map_server|rviz2|component_container|livox|control_node' 2>/dev/null
     echo "[stop_all] 请将上面列出的 PID 手动 kill: kill -9 <PID>"
     exit 1
 else

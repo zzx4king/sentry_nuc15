@@ -10,7 +10,9 @@ sentry_control:
     # 角速度缩放系数: 发送前 angular / angular_divisor
     angular_divisor: 1.42
     # 订阅的 Nav2 速度话题
-    cmd_vel_topic: cmd_vel
+    # Jazzy 速度链路: controller -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel_smoothed
+    # /cmd_vel 无数据 (collision_monitor 未转发), 故直接订阅平滑后的最终输出
+    cmd_vel_topic: /cmd_vel_smoothed
     # 指令发送频率 (Hz), 须满足 与 MCU 500ms 超时约束 (50Hz = 20ms 间隔)
     send_rate: 50.0
     # cmd_vel 超时 (秒): 超过该时间未收到新指令则发送零速 (安全保护)
