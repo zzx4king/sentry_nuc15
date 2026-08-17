@@ -1,6 +1,6 @@
 # sentry_nuc15 — 哨兵机器人 NUC15 上位机
 
-配合 `sentry_mcu` 使用的 RoboMaster 哨兵机器人上位机程序，运行于 NUC15。基于 Livox MID360s 激光雷达与 FAST-LIO2 激光惯性里程计，实现哨兵机器人的**激光建图**，并预留重定位与 Nav2 自主导航能力。
+配合 `sentry_mcu` 使用的 RoboMaster 哨兵机器人上位机程序，运行于 NUC15。基于 Livox MID360s 激光雷达与 FAST-LIO2 激光惯性里程计，实现哨兵机器人的**激光建图、重定位与 Nav2 自主导航**。
 
 ## 1. 项目简介
 
@@ -28,7 +28,7 @@ Livox MID360 驱动 → fastlio2 激光惯性里程计 → pgo 位姿图优化 �
 
 ## 3. 目录结构与功能包说明
 
-共包含 **9 个功能包**、**2 个一键脚本**，约 226 个源文件。
+共包含 **9 个功能包**、**4 个一键脚本**，约 226 个源文件。
 
 ```
 sentry_ws/
@@ -37,21 +37,24 @@ sentry_ws/
 │   │   ├── fastlio2/             # 激光惯性里程计：实时里程计与局部建图（ikd-Tree + iEKF）
 │   │   ├── hba/                  # 层次束调整（Hierarchical Bundle Adjustment）：回环检测与图优化
 │   │   ├── pgo/                  # 位姿图优化：回环后全局优化，提供 /pgo/save_maps 保存点云地图
-│   │   ├── localizer/            # 基于 ICP 的重定位（未完成）
+│   │   ├── localizer/            # 基于 ICP 的重定位：加载 PCD 地图，发布 map->odom TF
 │   │   └── interface/            # 自定义服务接口（SaveMaps / Relocalize / IsValid / RefineMap / SavePoses）
 │   ├── livox_ros_driver2/        # Livox 雷达驱动（含 MID360s 配置与发布线程本地修改）
 │   ├── livox_to_laserscan/       # 点云转 LaserScan（供 Nav2 避障用，含本地修改）
 │   ├── pcd2pgm/                  # PCD 点云地图转 PGM 栅格地图（含本地修改）
-│   └── sentry_nav2_bringup/      # Nav2 导航启动包（launch + nav2_params.yaml，未完成）
+│   └── sentry_nav2_bringup/      # Nav2 导航启动包（launch + nav2_params.yaml，已完成 Jazzy 兼容配置）
 ├── scipts/                       # 一键脚本
 │   ├── build_map.sh              # 建图：启动驱动+lio+pgo，计时结束后自动保存 map.pcd
-│   └── pcd2pgm.sh                # 地图转换：PCD → PGM（调用 map_saver_cli 保存）
-├── maps/                         # 建图结果（pcd 点云 + pgm 栅格）
+│   ├── pcd2pgm.sh                # 地图转换：PCD → PGM（调用 map_saver_cli 保存）
+│   ├── nav_start.sh              # 一键导航：雷达+定位+Nav2 全栈启动（含残留进程清理与初始定位）
+│   └── stop_all.sh               # 停止全部导航/建图相关进程
+├── maps/                         # 建图结果（每张地图含 pcd 点云 + pgm 栅格）
 │   ├── 207/                      # 207 场地地图
 │   ├── floor/                    # 楼层建图
 │   └── test/                     # 测试地图
 └── doc/
-    └── fit.md                    # FASTLIO2_ROS2 适配 ROS 2 Jazzy 的完整记录
+    ├── fastlio2_fit_jazzy.md     # FASTLIO2_ROS2 适配 ROS 2 Jazzy 的完整记录
+    └── nav2_jazzy_config_fix.md  # Nav2 Jazzy 兼容性修复记录（2026-08-17）
 ```
 
 ## 4. 项目完成度
@@ -60,10 +63,11 @@ sentry_ws/
 | --- | --- | --- |
 | 激光建图 | ✅ 已完成 | `build_map.sh` 一键建图，已在 207 / floor 场地验证 |
 | 地图转换（PCD→PGM） | ✅ 已完成 | `pcd2pgm.sh` 一键转换 |
-| 重定位（localizer/hba） | ⛔ 未完成 | 代码已就位，未调试 |
-| Nav2 自主导航（sentry_nav2_bringup） | ⛔ 未完成 | 仅搭好启动包框架，未联调 |
+| 重定位（localizer） | ✅ 已完成 | ICP 重定位，加载 PCD 地图发布 map->odom；经 `/localizer/relocalize` 服务指定初始位姿 |
+| Nav2 自主导航（sentry_nav2_bringup） | ✅ 配置完成 | 2026-08-17 完成 Jazzy 兼容性修复，11 节点全链路激活 + 端到端路径规划离线验证通过；`nav_start.sh` 一键启动 |
 
-> **当前仅完成建图流程**，定位与导航部分待后续开发。
+> **Nav2 配置修复记录**（planner 插件名、collision_monitor、docking_server、bt_navigator 四类 Jazzy 兼容问题）详见 [doc/nav2_jazzy_config_fix.md](doc/nav2_jazzy_config_fix.md)。
+> 注意：localizer 与 pgo 不可同时运行（均发布 map->odom TF）；导航须使用 `use_sim_time: False`。
 
 ## 5. 借鉴的开源仓库
 
@@ -127,7 +131,7 @@ cmake -DBUILD_SOPHUS_TESTS=OFF ..
 make -j && sudo make install
 ```
 
-> 详细踩坑记录见 [doc/fit.md](doc/fit.md)。
+> 详细踩坑记录见 [doc/fastlio2_fit_jazzy.md](doc/fastlio2_fit_jazzy.md)。
 
 ### 6.5 构建工作空间
 
@@ -145,4 +149,12 @@ source install/setup.bash
 
 # 点云地图转栅格地图
 ./scipts/pcd2pgm.sh maps/test/pcd/map.pcd
+
+# 一键导航（默认加载 floor 地图; 可选参数: 初始位姿 x y z yaw[rad]）
+./scipts/nav_start.sh
+./scipts/nav_start.sh 1.5 -2.0 0 1.57
+
+# 启动后在 RViz 中使用 2D Goal Pose 下发导航目标 (目标须落在自由空间)
+# 停止全部节点
+bash scipts/stop_all.sh
 ```

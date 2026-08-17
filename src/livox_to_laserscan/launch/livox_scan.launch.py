@@ -26,12 +26,6 @@ def generate_launch_description():
                 ('/scan', '/scan')
             ]
         ),
-    
-        # Static TF từ base_link -> laser
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='livox_tf',
-            arguments=['0', '0', '0.2', '0', '0', '0', 'base_link', 'laser']
-        )
+
+        # base_link -> livox_frame 静态 TF 由 sentry_description 提供, 此处不再发布
     ])
